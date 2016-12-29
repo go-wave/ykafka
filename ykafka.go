@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"github.com/Shopify/sarama"
+	"github.com/garyburd/redigo/redis"
 )
 
 type Manager struct {
@@ -66,9 +67,16 @@ func (m *Manager) initOffset(t *TopicCfg, partition int32, keeper *keeper) (int6
 	} else if t.From == "start" {
 		offset = sarama.OffsetOldest
 	} else {
-		offset, err = keeper.Get(t.Name, partition)
+		// 初始化
+		conn := RedisPool.Get()
+		defer conn.Close()
+
+		key := offsetkey(t.Name, partition, keeper.prefix)
+		offset, err = redis.Int64(conn.Do("GET", key))
 		if err != nil {
-			return 0, err
+			Logger.Warning("keeper get init offset error", err.Error(), key)
+		} else {
+			Logger.Info("keeper get offset success", key, offset)
 		}
 	}
 	return offset, nil
@@ -148,6 +156,7 @@ func (m *Manager) Start() error {
 			case "single":
 			case "":
 				go pconsumer.singleMode(topicCfg, partition, offset)
+				Logger.Debug("partition goroutine start", topicCfg.Name, partition)
 			case "set":
 				go pconsumer.setMode(topicCfg, partition, offset)
 			}

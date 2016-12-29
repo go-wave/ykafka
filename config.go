@@ -18,6 +18,7 @@ type TopicCfg struct {
 	From       string          `json:"from"`
 	Mode       string          `json:"mode"` // 可以为single和set两个值，分别对应两种模式
 	ModeConfig json.RawMessage `json:"modeConfig"`
+	Async      bool            `json:"async"` // 是否开启异步模式
 }
 
 // single的消费模式

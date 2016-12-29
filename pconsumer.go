@@ -35,7 +35,11 @@ func (m *pconsumer) singleMode(t *TopicCfg, partition int32, offset int64) error
 		case msg := <-p.Messages():
 			if msg != nil {
 				Logger.Debug("get a message", string(msg.Key), msg.Offset, string(msg.Value))
-				go worker(t.Name, partition, msg.Offset, msg.Value)
+				if t.Async == true {
+					go worker(t.Name, partition, msg.Offset, msg.Value)
+				} else {
+					worker(t.Name, partition, msg.Offset, msg.Value)
+				}
 			}
 			m.keeper.Set(t.Name, partition, msg.Offset)
 		}
@@ -77,10 +81,15 @@ func (m *pconsumer) setMode(t *TopicCfg, partition int32, offset int64) error {
 			m.keeper.Set(t.Name, partition, msg.Offset)
 
 			if len(msgs) > modecfg.Num {
-				err := worker(t.Name, msgs)
-				if err != nil {
-					Logger.Warning("work set msgs got error", err.Error())
+				if t.Async == true {
+					go worker(t.Name, msgs)
+				} else {
+					err := worker(t.Name, msgs)
+					if err != nil {
+						Logger.Warning("work set msgs got error", err.Error())
+					}
 				}
+
 				msgs = make([]*sarama.ConsumerMessage, 0, modecfg.Num)
 			}
 		}

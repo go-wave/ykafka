@@ -74,6 +74,8 @@ func NewKeeper(topic string, partition int32, prefix string, ticker string) (*ke
 				_, err := conn.Do("SET", key, keeper.offset)
 				if err != nil {
 					Logger.Warning("keeper set offset error", err.Error(), key, keeper.offset)
+				} else {
+					Logger.Info("keeper set offset success", key, keeper.offset)
 				}
 			}
 		}
